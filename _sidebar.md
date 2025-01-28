@@ -14,3 +14,4 @@
 
   - [Månadsrapportering](manadsrapportering.md)
   - [Månadsbryt](manadsbryt.md)
+  - [Audiences till Google & Meta](audiences.md)

@@ -4,6 +4,8 @@
 
 [LIVE Looker Studio](https://lookerstudio.google.com/u/1/reporting/c26d2b74-92b0-4e10-9d56-cae729b4bf9a/page/OcPuD) - Se viktiga KPI:er och följ månadens försäljning.
 
+[Juldashboard](https://docs.google.com/spreadsheets/d/1Z7pvCmtP5Hd4gj-FxYJsEzjaPot6KwwvjvH8MfPG6kE/edit?gid=0#gid=0) - Följ julförsäljningen
+
 ## Sheets
 
 [LIVE Månadsrapportering data](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=0#gid=0) - Underliggande data för Looker Studio.
