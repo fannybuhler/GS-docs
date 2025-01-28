@@ -2,6 +2,10 @@
 
 - [Home](/)
 
+- Register
+
+  - [Länkar](register.md)
+
 - Roller
 
   - [Product Owner](product-owner.md)
