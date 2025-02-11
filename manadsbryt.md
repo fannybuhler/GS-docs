@@ -220,7 +220,38 @@ ORDER BY datum, year, month, i.product_id,  o.`interval`;
 - Exportera data om poängkunder för månaden från M2 > Sales > GS Subscription > Subscription Statistics
 - Klistra in i fliken [Stamkunder Poäng](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=931244722#gid=931244722)
 
-##### 3. Flyttade dagar
+##### 3. Fördelning av stamkundslådan per storlek
+
+- Kör följande query
+
+```
+SELECT product_id, COUNT(*) AS active_customers
+FROM (
+    -- Count from gs_subscription
+    SELECT sp.product_id
+    FROM gs_subscription s
+    JOIN gs_subscription_products sp ON s.entity_id = sp.parent_id
+    WHERE s.state = 2
+      AND s.status = 1
+      AND sp.product_id IN (17, 404, 405, 406)
+
+    UNION ALL
+
+    -- Count from endlesssubscription_subscription
+    SELECT sp.product_id
+    FROM endlesssubscription_subscription s
+    JOIN endlesssubscription_subscription_products sp ON s.entity_id = sp.parent_id
+    WHERE s.state = 2
+      AND s.status = 1
+      AND sp.product_id IN (17, 404, 405, 406)
+) AS combined_data
+GROUP BY product_id
+ORDER BY product_id;
+```
+
+- Klistra in i fliken [Stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0) i kolumn AV, AZ, BD, BH
+
+##### 4. Flyttade dagar
 
 - Skriv in rätt datum och kör följande query för flyttade dagar, första är för kategori och andra är för poäng.
 
@@ -251,7 +282,7 @@ ORDER BY YEAR(h.updated_at), MONTH(h.updated_at), p.product_id, p.interval;
 
 - Klistra in resultatet i flikarna [Flyttade dagar Kategori](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=1162912392#gid=1162912392) och [Flyttade dagar Poäng](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=652096899#gid=652096899)
 
-##### 4. Aktiverade kategori-STL:er
+##### 5. Aktiverade kategori-STL:er
 
 - Kör följande query
 
