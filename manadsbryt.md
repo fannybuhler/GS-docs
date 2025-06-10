@@ -65,7 +65,7 @@ Görs i dokumentet [GS_utfall sålda och levererade produkter](https://docs.goog
 ### Magento: Sålda produkter
 
 1. Kör samma rapport, men med:
-   - **Date type**: _Order date_
+   - **Date type**: Order date
 2. Uppdatera webbläsaren för att säkerställa färska siffror.
 3. Exportera som CSV.
 4. Klistra in i fliken **ps_ordered**:
@@ -79,8 +79,7 @@ För de levererade stamkundslådorna använder vi en separat query. Detta görs 
 
 #### Steg:
 
-1. Ändra datumen högst upp i queryn nedan.
-2. Kör queryn.
+1. Ändra datumen högst upp i queryn nedan och kör den.
 3. Klistra in resultatet längst ner i **kolumn A** i fliken [STL Levererade](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=418109271#gid=418109271).
 4. Kompletterande data till höger i fliken hämtas från **Product Sales** och uppdateras automatiskt – dra ner kolumnerna vid behov.
 
