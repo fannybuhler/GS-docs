@@ -4,6 +4,12 @@
 
 Kör lokalt
 
+Ställ dig i roten
+```
+cd
+```
+
+Starta lokalt
 ```
 docsify serve docs
 ```

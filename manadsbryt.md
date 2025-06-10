@@ -25,7 +25,7 @@ Görs i dokumentet [LIVE Månadsrapportering data](https://docs.google.com/sprea
 
 ##### 2. Uppdatera fliken &nbsp; [Databas planerad omsättning](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=1971546303#gid=1971546303)
 
-- Radera förra månadens prognossiffror.
+- Uppdatera datumen.
 
 ##### 3. Uppdatera fliken &nbsp; [Stamkunder](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=258667635#gid=258667635)
 
@@ -40,155 +40,137 @@ Görs i dokumentet [LIVE Månadsrapportering data](https://docs.google.com/sprea
 Fördelningen över månaden baseras på veckodagar enligt fliken [Leveransdagar fördelning](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=975771408#gid=975771408).
 Uppdateras förslagsvis några gånger per år eller om det varit stora ändringar.
 
-## Månadsbryt i GS_utfall
+## Månadsbryt i GS_utfall sålda och levererade produkter
 
 > Rapportera sålda och levererade produkter efter månadsslut
 
 Görs i dokumentet [GS_utfall sålda och levererade produkter](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=627471941#gid=627471941)
 
-##### 1. Uppdatera fliken &nbsp; [STL Levererade](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=16986693#gid=16986693)
+### Magento: Levererade produkter
 
-- Öppna Table Plus och kör först datumet, sedan resten av queryn.
-- Klista in längst ner i fliken.
+1. Gå till **Magento > GS Reports > Product Sales**
+2. Ställ in:
+   - **Datumintervall**: föregående månad
+   - **Date type**: Delivery date
+   - **Period type**: Month
+3. Exportera som CSV.
+4. Öppna fliken **ps_delivered**:
+   - Klistra in CSV:en längst ner i **kolumn A**.
+   - Radera header-raden från importen.
+   - Kolumner **T (Product Category)**, **U och V (Tillval omsättning)** fylls i automatiskt. Dra ner rader vid behov.
+   - Om cell i kolumn T är röd med texten “Other”:
+     - Kopiera lådans **ID**, **namn** och **SKU**.
+     - Gå till fliken **products_lookup** och fyll i **Category** med STL, ÖVL eller TVL (tillvalslåda). Detta behöver bara göras när vi sålt en ny låda som inte redan finns där.
 
-  _Vi kommer inom en snar framtid att hämta den här datan från Product Sales istället_
+### Magento: Sålda produkter
 
-```
+1. Kör samma rapport, men med:
+   - **Date type**: _Order date_
+2. Uppdatera webbläsaren för att säkerställa färska siffror.
+3. Exportera som CSV.
+4. Klistra in i fliken **ps_ordered**:
+   - Klistra in längst ner i **kolumn A**.
+   - Radera header-raden.
+   - Kontrollera **kolumn T (Product Category)** som ovan.
+
+### Databas: Levererade STL-lådor
+
+För de levererade stamkundslådorna använder vi en separat query. Detta görs för att få mer detaljerad information om ordervärde och snittpriser som inte går att få ur Magento-rapporten.
+
+#### Steg:
+
+1. Ändra datumen högst upp i queryn nedan.
+2. Kör queryn.
+3. Klistra in resultatet längst ner i **kolumn A** i fliken [STL Levererade](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=418109271#gid=418109271).
+4. Kompletterande data till höger i fliken hämtas från **Product Sales** och uppdateras automatiskt – dra ner kolumnerna vid behov.
+
+
+```sql
 /* Utfall - Levererade STL-lådor */
-SET
-	@from_date = "2024-12-01";
-
-SET
-	@to_date = "2024-12-31";
+SET @from_date = "2025-07-01";
+SET @to_date = "2025-07-31";
 
 SELECT
-	boxes.datum,
-	boxes.year,
-	boxes.month,
-	DATE_FORMAT(CONCAT(boxes.year - 1, '-', boxes.month, '-01'), '%Y-%m-%d') AS LY,
-	boxes.product_id,
-	boxes.name,
-	boxes.sku,
-	boxes.stl_interval,
-	boxes.qty_delivered,
-	new_s.new_customers AS new_stl_customers,
-	"newnew" AS first_time_customers,
-	if(new_s.new_customers > 0, round(boxes.qty_delivered - new_s.new_customers), boxes.qty_delivered) AS returning_customers,
-	round(boxes.revenue) AS revenue,
-	new_s.new_order_revenue AS revenue_new_stl_customers,
-	if(new_s.new_customers > 0, round(boxes.revenue - new_s.new_order_revenue), round(boxes.revenue)) AS revenue_returning_stl_customers,
-	boxes.box_revenue,
-	boxes.aov,
-	boxes.box_price
+    boxes.datum,
+    boxes.year,
+    boxes.month,
+    boxes.product_id,
+    boxes.name,
+    boxes.sku,
+    boxes.qty_delivered,
+    COALESCE(new_s.new_customers, 0) AS first_time_stl_customers,
+    IF(new_s.new_customers > 0, ROUND(boxes.qty_delivered - new_s.new_customers), boxes.qty_delivered) AS repeat_stl_customers,
+    ROUND(boxes.revenue) AS total_order_revenue,
+    COALESCE(new_s.new_order_revenue, 0) AS first_time_stl_customer_revenue,
+    IF(new_s.new_customers > 0, ROUND(boxes.revenue - new_s.new_order_revenue), ROUND(boxes.revenue)) AS repeat_customer_revenue,
+    boxes.box_revenue AS total_stl_revenue,
+    boxes.aov
 FROM
-	(
-		SELECT
-			DATE_FORMAT(o.delivery_date, "%Y-%m-01") AS datum,
-			year(o.delivery_date) AS YEAR,
-			MONTH(o.delivery_date) AS MONTH,
-			oi.product_id,
-			oi.name,
-			oi.sku,
-			if(o.`interval` > 0, o.`interval`, 0) AS stl_interval,
-			round(sum(oi.qty_ordered)) AS qty_delivered,
-			sum(oi.qty_ordered) / count(o.entity_id) AS qty_per_order,
-			sum(o.base_subtotal) AS revenue,
-			round(sum(oi.qty_ordered * oi.price)) AS box_revenue,
-			round(sum(o.base_subtotal) / sum(oi.qty_ordered)) AS aov,
-			round(AVG(oi.price)) AS box_price
-		FROM
-			sales_order o
-			JOIN sales_order_item oi ON o.entity_id = oi.order_id
-		WHERE
-			oi.sku LIKE "stamkundsladan%"
-			AND oi.product_id NOT IN(315, 318, 248) /*nekade kortbetalningar */
-			AND o.status IN ("complete", "processing", "pending")
-			AND oi.price > 0
-			AND o.`delivery_date` >= @from_date
-			AND o.`delivery_date` < @to_date
-		GROUP BY
-			datum,
-			YEAR,
-			MONTH,
-			oi.product_id,
-			oi.sku,
-			oi.name,
-			stl_interval
-	) boxes
-	LEFT JOIN
-	/* Antal kunder som fick sin första STL */
-	(
-		SELECT
-			DATE_FORMAT(o.delivery_date, "%Y-%m-01") AS datum,
-			YEAR(o.delivery_date) AS YEAR,
-			MONTH(o.delivery_date) AS MONTH,
-			i.product_id,
-			i.name,
-			i.sku,
-			if(o.`interval` > 0, o.`interval`, 0) AS stl_interval,
-			round(sum(i.qty_ordered)) AS new_customers,
-			round(sum(o.subtotal)) AS new_order_revenue
-		FROM
-			sales_order o
-			JOIN sales_order_item i ON o.entity_id = i.order_id
-			AND i.sku LIKE "stamkundsladan%"
-			AND o.entity_id IN (
-				/* Inkludera endast kunders första levererade stl */
-				SELECT
-					min(o.entity_id)
-				FROM
-					sales_order o
-					JOIN sales_order_item i ON o.entity_id = i.order_id
-					AND o.status IN ("complete", "pending", "processing")
-					AND o.`subtotal` > 0
-					AND i.sku LIKE "stamkundsladan%"
-					AND o.customer_id > 0
-					AND o.delivery_date > 0
-				GROUP BY
-					o.customer_id
-			)
-		GROUP BY
-			datum,
-			YEAR,
-			MONTH,
-			i.product_id,
-			i.name,
-			i.sku,
-			stl_interval
-	) new_s ON boxes.datum = new_s.datum
-	AND boxes.product_id = new_s.product_id
-	AND boxes.name = new_s.name
-	AND boxes.sku = new_s.sku
-	AND boxes.stl_interval = new_s.stl_interval
-ORDER BY
-	boxes.datum,
-	boxes.product_id,
-	boxes.stl_interval;
+(
+    SELECT
+        DATE_FORMAT(o.delivery_date, "%Y-%m-01") AS datum,
+        YEAR(o.delivery_date) AS YEAR,
+        MONTH(o.delivery_date) AS MONTH,
+        oi.product_id,
+        oi.name,
+        oi.sku,
+        ROUND(SUM(oi.qty_ordered)) AS qty_delivered,
+        SUM(oi.qty_ordered) / COUNT(o.entity_id) AS qty_per_order,
+        SUM(o.base_subtotal) AS revenue,
+        ROUND(SUM(CASE WHEN oi.price > 0 THEN oi.qty_ordered * oi.price ELSE 0 END)) AS box_revenue,
+        ROUND(SUM(CASE WHEN o.base_subtotal > 0 THEN o.base_subtotal ELSE 0 END) / 
+              COUNT(CASE WHEN o.base_subtotal > 0 THEN 1 END)) AS aov,
+        ROUND(AVG(oi.price)) AS box_price
+    FROM
+        sales_order o
+        JOIN sales_order_item oi ON o.entity_id = oi.order_id
+    WHERE
+        oi.product_id IN (17, 404, 405, 406)
+        AND o.status IN ("complete", "processing")
+        AND o.is_cron_order = 1
+        AND o.delivery_date >= @from_date
+        AND o.delivery_date <= @to_date
+    GROUP BY
+        datum, YEAR, MONTH, oi.product_id, oi.sku, oi.name
+) boxes
+LEFT JOIN
+(
+    SELECT
+        DATE_FORMAT(o.delivery_date, "%Y-%m-01") AS datum,
+        YEAR(o.delivery_date) AS YEAR,
+        MONTH(o.delivery_date) AS MONTH,
+        i.product_id,
+        i.name,
+        i.sku,
+        ROUND(SUM(i.qty_ordered)) AS new_customers,
+        ROUND(SUM(o.subtotal)) AS new_order_revenue
+    FROM
+        sales_order o
+        JOIN sales_order_item i ON o.entity_id = i.order_id
+        JOIN (
+            SELECT MIN(oj.entity_id) AS first_order_id
+            FROM sales_order oj
+            JOIN sales_order_item ij ON oj.entity_id = ij.order_id
+            WHERE
+                oj.status IN ("complete", "processing")
+                AND oj.is_cron_order = 1
+                AND ij.product_id IN (17, 404, 405, 406)
+                AND oj.customer_id > 0
+                AND oj.delivery_date >= DATE_SUB(@from_date, INTERVAL 2 YEAR)
+            GROUP BY oj.customer_id
+        ) AS first_orders ON o.entity_id = first_orders.first_order_id
+    WHERE
+        i.product_id IN (17, 404, 405, 406)
+    GROUP BY
+        datum, YEAR, MONTH, i.product_id, i.name, i.sku
+) new_s ON boxes.datum = new_s.datum
+        AND boxes.product_id = new_s.product_id
+        AND boxes.name = new_s.name
+ORDER BY boxes.datum, boxes.product_id;
 ```
+---
 
-##### 2. Uppdatera flikarna Levererade ÖVL & tillval samt Sålda ÖVL & Tillval
-
-- Använd M2-rapporten Products Sales under M2 admin > GS Reports.
-- Ställ in datum för månaden som ska rapporteras, sätt exporten till Delivery date och Månad (period type), lämna SKU tomt. Exportera som csv.
-- Skapa en **ny flik** i LIVE och importera csv-filen, döp till **"levererat"**.
-- Gör samma export men ändra inställning till “Order date” klistra in i **ny flik** i dokumentet, döp till **"sålt"**. Dessa kommer att användas till både ÖVL och Tillval.
-- I både "levererat" och "sålt":
-
-  - Radera sista fyra kolumnerna: Future Qty, Future Total ex vat, Tot. Qty samt Tot. Revenue ex vat.
-  - Skapa filter på samtliga rubriker
-  - Filtrera bort ev rader med produkt-id 17, 315, 318, 404, 405, 406 (Avser Stamkundslådan, betalning för tidigare leverans och nekade kortbetalningar).
-  - Sätt filter på Sold As Type = “box” i respektive export
-  - Kopiera de rader som återstår och klistra in i [Levererade ÖVL-lådor](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=1396535852#gid=1396535852) och [Sålda ÖVL-lådor](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=1241022428#gid=1241022428)
-  - Dra ner de två sista kolumnerna för Marginal % och Marginalkronor då att de beräknas för de nya raderna.
-
-- Byt filtret i "levererat" och "sålt" till Sold as Type = Addon.
-- Kopiera de rader som återstår och klistra in i [Levererade Tillval](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=581555733#gid=581555733) och [Sålda Tillval](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=2142241328#gid=2142241328).
-- Radera flikana "levererat" och "sålt" för att hålla dokumentet städat.
-
-- I fliken [Levererat Översikt per månad](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=627471941#gid=627471941): Dra ner alla formler så att beräkningarna körs för senaste månaden.
-- I fliken [Sålt Översikt per månad](https://docs.google.com/spreadsheets/d/1KwBj8qcOVttA0GvzNLp2zrXQ-8NTeE31_c4XP4en3Q8/edit?gid=1192122720#gid=1192122720): Dra ner alla formler så att beräkningarna körs för senaste månaden.
-
-## Månadsbryt i GS_stamkunder
+## Månadsbryt i GS_utfall stamkunder
 
 > Rapportera stamkunder
 
@@ -319,6 +301,8 @@ order by datum;
 - Dra ner raderna i [Stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0)
 - Dra ner raderna i [Stamkundslådan Omsättning](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=729871671#gid=729871671)
 - Dra ner raderna i [Ta din låda-metrics](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=154047510#gid=154047510)
+
+---
 
 ## Årsbryt
 
