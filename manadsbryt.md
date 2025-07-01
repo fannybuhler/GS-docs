@@ -23,7 +23,7 @@ Görs i dokumentet [LIVE Månadsrapportering data](https://docs.google.com/sprea
 - Denna fyller i månadens datum själv men man behöver manuellt fixa raden i slutet så det är rätt antal dagar för innevarande månad.
 - Radera förra månadens inskrivna **Omsättning (E)** och **Lådor antal levererade (J)**.
 
-##### 2. Uppdatera fliken &nbsp; [Databas planerad omsättning](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=1971546303#gid=1971546303)
+##### 2. Uppdatera fliken &nbsp; [Planerad omsättning](https://docs.google.com/spreadsheets/d/1pqKRh94o5V-bLYeRvWH9RxJO0B7omkVC2wWbL_vbZUs/edit?gid=1971546303#gid=1971546303)
 
 - Uppdatera datumen.
 
@@ -175,25 +175,7 @@ ORDER BY boxes.datum, boxes.product_id;
 
 Görs i dokumentet [GS_utfall stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0)
 
-##### 1. Nya stamkunder per låda och intervall
-
-- Skriv in rätt datum och kör följande query
-
-```
-SELECT DATE_FORMAT(o.created_at,"%Y-%m-01") as datum, year(o.created_at) as year, month(o.created_at) as month, "LY" as LY, i.product_id, i.`name` as product_name, i.sku, o.`interval`, count(o.subscription_id)
-FROM sales_order o JOIN sales_order_item i on o.entity_id = i.order_id and i.product_id in (404,405,406,17)
-join gs_subscription s on o.subscription_id = s.entity_id and s.`state` = 2 /* Kolla att prenumerationen skapades upp ok */
-WHERE
-    o.created_at >= "2024-12-01 00:00:00" AND o.created_at < "2024-12-31 23:59:59" AND
-    o.status = "subscription_start"
-GROUP BY datum, year, month, LY, i.product_id, product_name, sku,  o.`interval`
-ORDER BY datum, year, month, i.product_id,  o.`interval`;
-```
-
-- Klistra in resultatet i fliken [Stamkundslådan införsäljning](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=517552797#gid=517552797)
-- Dra ner raderna i kolumn K till O.
-
-##### 2. Befintliga stamkunder dag för dag
+##### 1. Befintliga stamkunder dag för dag
 
 - Exportera data om kategorikunder för månaden från M2 > Sales > Endless Subscription > Subscription Statistics
 - Klistra in i fliken [Stamkunder Kategori](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=1220565309#gid=1220565309)
@@ -201,38 +183,8 @@ ORDER BY datum, year, month, i.product_id,  o.`interval`;
 - Exportera data om poängkunder för månaden från M2 > Sales > GS Subscription > Subscription Statistics
 - Klistra in i fliken [Stamkunder Poäng](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=931244722#gid=931244722)
 
-##### 3. Fördelning av stamkundslådan per storlek
 
-- Kör följande query
-
-```
-SELECT product_id, COUNT(*) AS active_customers
-FROM (
-    -- Count from gs_subscription
-    SELECT sp.product_id
-    FROM gs_subscription s
-    JOIN gs_subscription_products sp ON s.entity_id = sp.parent_id
-    WHERE s.state = 2
-      AND s.status = 1
-      AND sp.product_id IN (17, 404, 405, 406)
-
-    UNION ALL
-
-    -- Count from endlesssubscription_subscription
-    SELECT sp.product_id
-    FROM endlesssubscription_subscription s
-    JOIN endlesssubscription_subscription_products sp ON s.entity_id = sp.parent_id
-    WHERE s.state = 2
-      AND s.status = 1
-      AND sp.product_id IN (17, 404, 405, 406)
-) AS combined_data
-GROUP BY product_id
-ORDER BY product_id;
-```
-
-- Klistra in i fliken [Stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0) i kolumn AV, AZ, BD, BH
-
-##### 4. Flyttade dagar
+##### 2. Flyttade dagar
 
 - Skriv in rätt datum och kör följande query för flyttade dagar, första är för kategori och andra är för poäng.
 
@@ -263,7 +215,7 @@ ORDER BY YEAR(h.updated_at), MONTH(h.updated_at), p.product_id, p.interval;
 
 - Klistra in resultatet i flikarna [Flyttade dagar Kategori](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=1162912392#gid=1162912392) och [Flyttade dagar Poäng](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=652096899#gid=652096899)
 
-##### 5. Aktiverade kategori-STL:er
+##### 3. Aktiverade kategori-STL:er
 
 - Kör följande query
 
@@ -297,9 +249,12 @@ order by datum;
 ```
 
 - Klistra in resultatet i [Aktiveringar från pausade kategori-STL](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=605473185#gid=605473185)
-- Dra ner raderna i [Stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0)
-- Dra ner raderna i [Stamkundslådan Omsättning](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=729871671#gid=729871671)
-- Dra ner raderna i [Ta din låda-metrics](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=154047510#gid=154047510)
+
+##### 4. Dra ner formlerna
+Dra ner hela förra månadens rad till nuvarande månad i följande dokument
+- [Stamkunder](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=0#gid=0)
+- [Stamkundslådan Omsättning](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=729871671#gid=729871671)
+- [Ta din låda-metrics](https://docs.google.com/spreadsheets/d/1VZagqGnJ5WWwV9c2fB4ryoaD4XNgyBj-LitrDlYXDnE/edit?gid=154047510#gid=154047510)
 
 ---
 
